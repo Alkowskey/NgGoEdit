@@ -1,1 +1,1 @@
-<code-editor *ngIf = "isBrowser" [(ngModel)]="code" (ngModelChange)="onCodeChange($event)" [theme]="'dark'" [lineWrapping]="true" [languages]="languages" [language]="'javascript'"></code-editor>
+<code-editor *ngIf = "isBrowser" [ngModel]="code | async" (ngModelChange)="onCodeChange($event)" [theme]="'dark'" [lineWrapping]="true" [languages]="languages" [language]="'javascript'"></code-editor>

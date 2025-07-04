@@ -3,20 +3,27 @@ import { CodeEditor } from '@acrodata/code-editor';
 import { LanguageDescription } from "@codemirror/language"
 
 import { FormsModule } from '@angular/forms';
-import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { AsyncPipe, CommonModule, isPlatformBrowser } from '@angular/common';
 import { WebSocketService } from './websocket.service';
-import { NgZone } from '@angular/core';
+import { Observable, filter, of, startWith, tap } from 'rxjs';
+
+const STATIC_JS_CODE_EXAMPLE = `
+  function hello(name = "test") {
+    console.log("hello", name);
+    console.log("test");
+  }
+`
 
 @Component({
   selector: 'app-code-editor',
-  imports: [FormsModule, CodeEditor, CommonModule],
+  imports: [FormsModule, CodeEditor, CommonModule, AsyncPipe],
   templateUrl: './code-editor.component.html',
   styleUrl: './code-editor.component.scss'
 })
 export class CodeEditorComponent {
   isBrowser = false;
-  private updatingFromSocket = false;
-  private blockSendUntil: number = 0;
+
+  code!: Observable<string>;
 
   languages : LanguageDescription[] = [
     LanguageDescription.of({
@@ -35,23 +42,14 @@ export class CodeEditorComponent {
     this.isBrowser = isPlatformBrowser(this.platformId);
     if (this.isBrowser) {
       this.wsService.connect('ws://localhost:8080/ws');
-      this.wsService.messages.subscribe((msg) => {
-        this.blockSendUntil = Date.now() + 5000;
-        this.code = msg;
-      });
+      this.code = this.wsService.messages.pipe(
+        startWith(STATIC_JS_CODE_EXAMPLE),
+        filter((message) => message.length > 3)
+      );
     }
   }
-
-  code = `
-  function hello(who = "world") {
-    console.log('Hello world!');
-    console.log(who);
-  }
-  `;
 
   onCodeChange(newCode: string) {
-    if (Date.now() > this.blockSendUntil) {
-      this.wsService.send(newCode);
-    }
+    this.wsService.send(newCode);
   }
 }
